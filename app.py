@@ -119,16 +119,40 @@ def main():
             if predict_button:
                 st.session_state.prediction = None
                 if model is not None:
-                    feature_df = pd.DataFrame([
-                        {
-                            "Customer_Age": age,
-                            "Claim_Amount": claim_amount,
-                            "Past_Claims_Count": past_claims,
-                            "Policy_Type": policy_type,
-                        }
+                    # 1. Get user input
+                    selected_age = age
+                    selected_amount = claim_amount
+                    selected_past_claims = past_claims
+                    selected_policy = policy_type
+
+                    # 2. Pre-process the input
+                    input_data = {
+                        "Customer_Age": selected_age,
+                        "Claim_Amount": selected_amount,
+                        "Past_Claims_Count": selected_past_claims,
+                        "Policy_Gold": 0,
+                        "Policy_Silver": 0,
+                    }
+
+                    # Set the correct policy flag to 1
+                    if selected_policy == "Gold":
+                        input_data["Policy_Gold"] = 1
+                    elif selected_policy == "Silver":
+                        input_data["Policy_Silver"] = 1
+                    # Note: If 'Bronze' is selected, both remain 0 (this represents the "Bronze" baseline)
+
+                    # 3. Create the DataFrame and predict
+                    # Make sure columns are in the exact order the model expects
+                    input_df = pd.DataFrame([input_data], columns=[
+                        "Customer_Age",
+                        "Claim_Amount",
+                        "Past_Claims_Count",
+                        "Policy_Gold",
+                        "Policy_Silver",
                     ])
+
                     try:
-                        prediction = model.predict(feature_df)[0]
+                        prediction = model.predict(input_df)[0]
                         st.session_state.prediction = "Approved" if int(prediction) == 1 else "Denied"
                     except Exception as exc:
                         st.error(f"Prediction failed: {exc}")
