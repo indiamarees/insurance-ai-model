@@ -119,43 +119,36 @@ def main():
             if predict_button:
                 st.session_state.prediction = None
                 if model is not None:
-                    # 1. Get user input
-                    selected_age = age
-                    selected_amount = claim_amount
-                    selected_past_claims = past_claims
-                    selected_policy = policy_type
-
-                    # 2. Pre-process the input
+                    # 1. Prepare base data
                     input_data = {
-                        "Customer_Age": selected_age,
-                        "Claim_Amount": selected_amount,
-                        "Past_Claims_Count": selected_past_claims,
-                        "Policy_Gold": 0,
-                        "Policy_Silver": 0,
+                        "Customer_Age": age,
+                        "Claim_Amount": claim_amount,
+                        "Past_Claims_Count": past_claims,
+                        "Policy_Type_Gold": 0,
+                        "Policy_Type_Silver": 0,
                     }
 
-                    # Set the correct policy flag to 1
-                    if selected_policy == "Gold":
-                        input_data["Policy_Gold"] = 1
-                    elif selected_policy == "Silver":
-                        input_data["Policy_Silver"] = 1
-                    # Note: If 'Bronze' is selected, both remain 0 (this represents the "Bronze" baseline)
+                    # 2. Set the correct policy flag to 1
+                    # Note: Using the exact names: Policy_Type_Gold and Policy_Type_Silver
+                    if policy_type == "Gold":
+                        input_data["Policy_Type_Gold"] = 1
+                    elif policy_type == "Silver":
+                        input_data["Policy_Type_Silver"] = 1
 
-                    # 3. Create the DataFrame and predict
-                    # Make sure columns are in the exact order the model expects
-                    input_df = pd.DataFrame([input_data], columns=[
-                        "Customer_Age",
-                        "Claim_Amount",
-                        "Past_Claims_Count",
-                        "Policy_Gold",
-                        "Policy_Silver",
-                    ])
-
+                    # 3. Create DataFrame and "Proactively" order columns
+                    input_df = pd.DataFrame([input_data])
+                    
+                    # PROACTIVE CHECK: Force the DataFrame to match the model's expected feature order
+                    # This prevents 'Feature names unseen' errors completely
                     try:
+                        input_df = input_df[model.feature_names_in_]
+                        
                         prediction = model.predict(input_df)[0]
                         st.session_state.prediction = "Approved" if int(prediction) == 1 else "Denied"
                     except Exception as exc:
-                        st.error(f"Prediction failed: {exc}")
+                        st.error(f"Prediction logic error: {exc}")
+                        st.write("Model expected these features:", model.feature_names_in_)
+                        st.write("Your input features:", input_df.columns.tolist())
                 else:
                     st.warning("Unable to predict because the model could not be loaded.")
 
